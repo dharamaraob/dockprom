@@ -381,3 +381,57 @@ To run the grafana container as `user: 104` change your `docker-compose.yml` lik
     labels:
       org.label-schema.group: "monitoring"
 ```
+
+docker run command along with nginx integration
+
+docker run -d \
+--name grafana \
+-v grafana_data:/var/lib/grafana \
+-v $(pwd)/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards \
+-v $(pwd)/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources \
+-e GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin} \
+-e GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin} \
+-e GF_USERS_ALLOW_SIGN_UP=false \
+-e GF_SERVER_ROOT_URL=\%\(protocol\)s://\%\(domain\)s:\%\(http_port\)s/grafana/ \
+--restart unless-stopped \
+--expose 3000 \
+--network monitor-net \
+--label org.label-schema.group="monitoring" \
+grafana/grafana:11.0.0
+
+---
+(or)
+
+docker run -d \
+--name grafana \
+-v grafana_data:/var/lib/grafana \
+-v $(pwd)/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards \
+-v $(pwd)/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources \
+-e GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin} \
+-e GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin} \
+-e GF_USERS_ALLOW_SIGN_UP=false \
+-e 'GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/grafana/' \
+--restart unless-stopped \
+-p 3000:3000 \
+--network monitor-net \
+--label org.label-schema.group="monitoring" \
+grafana/grafana:11.0.0
+---
+prometheus
+
+docker run -d --name prometheus \
+--network monitor-net \
+-v $(pwd)/prometheus:/etc/prometheus \
+-v prometheus_data:/prometheus \
+-p 9090:9090 \
+--restart unless-stopped \
+prom/prometheus:v2.52.0 \
+--config.file=/etc/prometheus/prometheus.yml \
+--storage.tsdb.path=/prometheus \
+--web.console.libraries=/etc/prometheus/console_libraries \
+--web.console.templates=/etc/prometheus/consoles \
+--storage.tsdb.retention.time=200h \
+--web.enable-lifecycle \
+--web.external-url=https://localhost/prometheus/
+
+
